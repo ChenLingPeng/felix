@@ -620,7 +620,12 @@ func (t *Table) getHashesFromBuffer(buf *bytes.Buffer) map[string][]string {
 }
 
 func (t *Table) InvalidateDataplaneCache(reason string) {
-	t.logCxt.WithField("reason", reason).Info("Invalidating dataplane cache")
+	logCxt := t.logCxt.WithField("reason", reason)
+	if !t.inSyncWithDataPlane {
+		logCxt.Debug("Would invalidate dataplane cache but it was already invalid.")
+		return
+	}
+	logCxt.Info("Invalidating dataplane cache")
 	t.inSyncWithDataPlane = false
 }
 
@@ -646,6 +651,7 @@ func (t *Table) Apply() (rescheduleAfter time.Duration) {
 		t.logCxt.WithField("newPostWriteInterval", t.postWriteInterval).Debug("Updating post-write interval")
 		if !invalidated {
 			t.InvalidateDataplaneCache("post update")
+			invalidated = true
 		}
 	}
 
