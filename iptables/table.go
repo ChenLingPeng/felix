@@ -29,7 +29,8 @@ import (
 )
 
 const (
-	MaxChainNameLength = 28
+	MaxChainNameLength         = 28
+	defaultPostWriteCheckDelay = 50 * time.Millisecond
 )
 
 var (
@@ -216,10 +217,11 @@ type Table struct {
 
 	// Record when we did our most recent reads and writes of the table.  We use these to
 	// calculate the next time we should force a refresh.
-	lastReadTime      time.Time
-	lastWriteTime     time.Time
-	postWriteInterval time.Duration
-	refreshInterval   time.Duration
+	lastReadTime               time.Time
+	lastWriteTime              time.Time
+	postWriteInterval          time.Duration
+	refreshInterval            time.Duration
+	initialPostWriteCheckDelay time.Duration
 
 	logCxt *log.Entry
 
@@ -235,10 +237,11 @@ type Table struct {
 }
 
 type TableOptions struct {
-	HistoricChainPrefixes    []string
-	ExtraCleanupRegexPattern string
-	InsertMode               string
-	RefreshInterval          time.Duration
+	HistoricChainPrefixes      []string
+	ExtraCleanupRegexPattern   string
+	InsertMode                 string
+	RefreshInterval            time.Duration
+	InitialPostWriteCheckDelay time.Duration
 
 	// NewCmdOverride for tests, if non-nil, factory to use instead of the real exec.Command()
 	NewCmdOverride cmdFactory
@@ -305,6 +308,11 @@ func NewTable(
 		now = options.NowOverride
 	}
 
+	initialPostWriteCheckDelay := defaultPostWriteCheckDelay
+	if options.InitialPostWriteCheckDelay != 0 {
+		initialPostWriteCheckDelay = options.InitialPostWriteCheckDelay
+	}
+
 	table := &Table{
 		Name:                   name,
 		IPVersion:              ipVersion,
@@ -328,9 +336,10 @@ func NewTable(
 		// Note: if we didn't do this, the calculation logic would need to be modified
 		// to cope with zero values for these fields.
 		lastWriteTime:     now(),
-		postWriteInterval: 50 * time.Millisecond,
+		postWriteInterval: initialPostWriteCheckDelay,
 
-		refreshInterval: options.RefreshInterval,
+		refreshInterval:            options.RefreshInterval,
+		initialPostWriteCheckDelay: initialPostWriteCheckDelay,
 
 		newCmd:    newCmd,
 		timeSleep: sleep,
@@ -359,10 +368,9 @@ func (t *Table) SetRuleInsertions(chainName string, rules []Rule) {
 	t.gaugeNumRules.Add(float64(numRulesDelta))
 	t.dirtyInserts.Add(chainName)
 
-	// Defensive: make sure we re-read the dataplane state before we make updates.  While the
-	// code was originally designed not to need this, we found that other users of
-	// iptables-restore can still clobber out updates so it's safest to re-read the state before
-	// each write.
+	// Defensive: it's particularly important that we're in sync before we update an insert
+	// since the top-level chains are by far the most likely place for us to conflict with
+	// another process.
 	t.InvalidateDataplaneCache("insertion")
 }
 
@@ -382,12 +390,6 @@ func (t *Table) UpdateChain(chain *Chain) {
 	numRulesDelta := len(chain.Rules) - oldNumRules
 	t.gaugeNumRules.Add(float64(numRulesDelta))
 	t.dirtyChains.Add(chain.Name)
-
-	// Defensive: make sure we re-read the dataplane state before we make updates.  While the
-	// code was originally designed not to need this, we found that other users of
-	// iptables-restore can still clobber out updates so it's safest to re-read the state before
-	// each write.
-	t.InvalidateDataplaneCache("chain update")
 }
 
 func (t *Table) RemoveChains(chains []*Chain) {
@@ -403,12 +405,6 @@ func (t *Table) RemoveChainByName(name string) {
 		delete(t.chainNameToChain, name)
 		t.dirtyChains.Add(name)
 	}
-
-	// Defensive: make sure we re-read the dataplane state before we make updates.  While the
-	// code was originally designed not to need this, we found that other users of
-	// iptables-restore can still clobber out updates so it's safest to re-read the state before
-	// each write.
-	t.InvalidateDataplaneCache("chain removal")
 }
 
 func (t *Table) loadDataplaneState() {
@@ -888,7 +884,7 @@ func (t *Table) applyUpdates() error {
 			return err
 		}
 		t.lastWriteTime = t.timeNow()
-		t.postWriteInterval = 50 * time.Millisecond
+		t.postWriteInterval = t.initialPostWriteCheckDelay
 	}
 
 	// Now we've successfully updated iptables, clear the dirty sets.  We do this even if we

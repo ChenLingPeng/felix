@@ -83,8 +83,9 @@ type Config struct {
 
 	MaxIPSetSize int
 
-	IptablesRefreshInterval time.Duration
-	IptablesInsertMode      string
+	IptablesRefreshInterval     time.Duration
+	IptablesPostWriteCheckDelay time.Duration
+	IptablesInsertMode          string
 
 	RulesConfig rules.Config
 
@@ -184,10 +185,11 @@ func NewIntDataplaneDriver(config Config) *InternalDataplane {
 		4,
 		rules.RuleHashPrefix,
 		iptables.TableOptions{
-			HistoricChainPrefixes:    rules.AllHistoricChainNamePrefixes,
-			ExtraCleanupRegexPattern: rules.HistoricInsertedNATRuleRegex,
-			InsertMode:               config.IptablesInsertMode,
-			RefreshInterval:          config.IptablesRefreshInterval,
+			HistoricChainPrefixes:      rules.AllHistoricChainNamePrefixes,
+			ExtraCleanupRegexPattern:   rules.HistoricInsertedNATRuleRegex,
+			InsertMode:                 config.IptablesInsertMode,
+			RefreshInterval:            config.IptablesRefreshInterval,
+			InitialPostWriteCheckDelay: config.IptablesPostWriteCheckDelay,
 		},
 	)
 	rawTableV4 := iptables.NewTable(
@@ -195,18 +197,20 @@ func NewIntDataplaneDriver(config Config) *InternalDataplane {
 		4,
 		rules.RuleHashPrefix,
 		iptables.TableOptions{
-			HistoricChainPrefixes: rules.AllHistoricChainNamePrefixes,
-			InsertMode:            config.IptablesInsertMode,
-			RefreshInterval:       config.IptablesRefreshInterval,
+			HistoricChainPrefixes:      rules.AllHistoricChainNamePrefixes,
+			InsertMode:                 config.IptablesInsertMode,
+			RefreshInterval:            config.IptablesRefreshInterval,
+			InitialPostWriteCheckDelay: config.IptablesPostWriteCheckDelay,
 		})
 	filterTableV4 := iptables.NewTable(
 		"filter",
 		4,
 		rules.RuleHashPrefix,
 		iptables.TableOptions{
-			HistoricChainPrefixes: rules.AllHistoricChainNamePrefixes,
-			InsertMode:            config.IptablesInsertMode,
-			RefreshInterval:       config.IptablesRefreshInterval,
+			HistoricChainPrefixes:      rules.AllHistoricChainNamePrefixes,
+			InsertMode:                 config.IptablesInsertMode,
+			RefreshInterval:            config.IptablesRefreshInterval,
+			InitialPostWriteCheckDelay: config.IptablesPostWriteCheckDelay,
 		})
 	ipSetsConfigV4 := config.RulesConfig.IPSetConfigV4
 	ipSetsV4 := ipsets.NewIPSets(ipSetsConfigV4)
@@ -243,10 +247,11 @@ func NewIntDataplaneDriver(config Config) *InternalDataplane {
 			6,
 			rules.RuleHashPrefix,
 			iptables.TableOptions{
-				HistoricChainPrefixes:    rules.AllHistoricChainNamePrefixes,
-				ExtraCleanupRegexPattern: rules.HistoricInsertedNATRuleRegex,
-				InsertMode:               config.IptablesInsertMode,
-				RefreshInterval:          config.IptablesRefreshInterval,
+				HistoricChainPrefixes:      rules.AllHistoricChainNamePrefixes,
+				ExtraCleanupRegexPattern:   rules.HistoricInsertedNATRuleRegex,
+				InsertMode:                 config.IptablesInsertMode,
+				RefreshInterval:            config.IptablesRefreshInterval,
+				InitialPostWriteCheckDelay: config.IptablesPostWriteCheckDelay,
 			},
 		)
 		rawTableV6 := iptables.NewTable(
@@ -254,9 +259,10 @@ func NewIntDataplaneDriver(config Config) *InternalDataplane {
 			6,
 			rules.RuleHashPrefix,
 			iptables.TableOptions{
-				HistoricChainPrefixes: rules.AllHistoricChainNamePrefixes,
-				InsertMode:            config.IptablesInsertMode,
-				RefreshInterval:       config.IptablesRefreshInterval,
+				HistoricChainPrefixes:      rules.AllHistoricChainNamePrefixes,
+				InsertMode:                 config.IptablesInsertMode,
+				RefreshInterval:            config.IptablesRefreshInterval,
+				InitialPostWriteCheckDelay: config.IptablesPostWriteCheckDelay,
 			},
 		)
 		filterTableV6 := iptables.NewTable(
@@ -264,9 +270,10 @@ func NewIntDataplaneDriver(config Config) *InternalDataplane {
 			6,
 			rules.RuleHashPrefix,
 			iptables.TableOptions{
-				HistoricChainPrefixes: rules.AllHistoricChainNamePrefixes,
-				InsertMode:            config.IptablesInsertMode,
-				RefreshInterval:       config.IptablesRefreshInterval,
+				HistoricChainPrefixes:      rules.AllHistoricChainNamePrefixes,
+				InsertMode:                 config.IptablesInsertMode,
+				RefreshInterval:            config.IptablesRefreshInterval,
+				InitialPostWriteCheckDelay: config.IptablesPostWriteCheckDelay,
 			},
 		)
 

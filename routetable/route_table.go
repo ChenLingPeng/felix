@@ -24,12 +24,14 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/projectcalico/felix/conntrack"
 	"github.com/projectcalico/felix/ifacemonitor"
 	"github.com/projectcalico/felix/ip"
 	"github.com/projectcalico/felix/set"
-	"github.com/prometheus/client_golang/prometheus"
-	"time"
 )
 
 var (

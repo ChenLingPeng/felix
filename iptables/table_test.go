@@ -291,8 +291,7 @@ var _ = Describe("Table with an empty dataplane", func() {
 				})
 				dataplane.ResetCmds()
 				table.Apply()
-				// Should do a save but then figure out that there's nothing to do
-				Expect(dataplane.CmdNames).To(ConsistOf("iptables-save"))
+				Expect(dataplane.CmdNames).To(BeEmpty())
 			})
 		})
 		Describe("then extending the chain", func() {

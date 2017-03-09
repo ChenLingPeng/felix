@@ -106,7 +106,8 @@ type Config struct {
 	Ipv6Support    bool `config:"bool;true"`
 	IgnoreLooseRPF bool `config:"bool;false"`
 
-	IptablesRefreshInterval int `config:"int;10"`
+	IptablesRefreshInterval     int     `config:"int;10"`
+	IptablesPostWriteCheckDelay float64 `config:"float;0.1"`
 
 	MetadataAddr string `config:"hostname;127.0.0.1;die-on-fail"`
 	MetadataPort int    `config:"int(0,65535);8775;die-on-fail"`
